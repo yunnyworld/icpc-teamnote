@@ -1,0 +1,659 @@
+/*
+ICPC TEAM NOTE
+
+last update: 2023-08-21
+author: yunny_world
+
+All implementations are made with function or struct.
+
+Contents
+
+1. Data Structure
+	1 - 1. Segment Tree
+	1 - 2. Lazy Propagation
+	1 - 3. Kosaraju (SCC)
+	1 - 4. LCA
+	1 - 5. Merge Sort Tree
+
+2. Geometry
+	2 - 1. CCW
+	2 - 2. 360 degree sort
+	2 - 3. Convex Hull
+	2 - 4. Rotating Calipers
+	2 - 5. Point in Convex Polygon
+
+3. Graph
+	3 - 1. Bellman-Ford
+	3 - 2. Eulerian Circuit
+	3 - 3. Bipartitie Matching
+	3 - 4. Edmonds-Karp
+	3 - 5. Dinic
+
+4. Math
+	4 - 1. Seive of Eratosthenes
+	4 - 2. Euler Phi
+	4 - 3. Fermat's little Theorem
+	4 - 4. Extended Euclid
+	4 - 5. Chinese Remainder Theorm 
+	4 - 6. Catalan Number
+	4 - 7. Binomial Coefficient (N^2)
+	4 - 8. Lucas Theorm (Binomial Coefficient)
+	4 - 9. Modular Inverse
+
+5. String
+	5 - 1. Rabin-Karp
+	5 - 2. Trie
+	5 - 3. KMP
+	5 - 4. Manacher
+	5 - 5. Suffix Array
+
+6. ETC
+	6 - 1. Union Find
+	6 - 2. Ternary Search
+	6 - 3. Power with Divide and Conquer
+	6 - 4. Matrix Power with Divide and Conquer
+	6 - 5. Fibonacci Matrix
+	6 - 6. Convex Hull Trick
+*/
+#include <bits/stdc++.h>
+#define ll long long int
+using namespace std;
+
+/*
+Segment Tree
+*/
+struct ST
+{
+	ll n;
+	vector<ll> tree;
+	ST(ll n) :n(n), tree(4 * (n + 1)) {}
+	ll query(ll x, ll s, ll e, ll l, ll r)
+	{
+		if (l > e || r < s) return 0ll;
+		if (l <= s && e <= r) return tree[x];
+		ll L = query(x * 2, s, (s + e) / 2, l, r);
+		ll R = query(x * 2 + 1, (s + e) / 2 + 1, e, l, r);
+		return L + R;
+	}
+	void update(ll x, ll s, ll e, ll idx, ll val)
+	{
+		if (idx<s || idx>e) return;
+		if (s == e) tree[x] = val;
+		else
+		{
+			update(x * 2, s, (s + e) / 2, idx, val);
+			update(x * 2 + 1, (s + e) / 2 + 1, e, idx, val);
+			tree[x] = tree[x * 2] + tree[x * 2 + 1];
+		}
+	}
+};
+
+/*
+Lazy Propagation
+*/
+struct STLazy
+{
+	ll n;
+	vector<ll> tree, lazy;
+	STLazy(ll n) :n(n), tree(4 * (n + 1)), lazy(4 * (n + 1)) {}
+	void update_lazy(ll x, ll s, ll e)
+	{
+		tree[x] += (e - s + 1) * lazy[x];
+		if (s != e)
+		{
+			lazy[x * 2] += lazy[x];
+			lazy[x * 2 + 1] += lazy[x];
+		}
+		lazy[x] = 0;
+	}
+	void update_range(ll x, ll s, ll e, ll l, ll r, ll diff)
+	{
+		update_lazy(x, s, e);
+		if (l > e || s > r) return;
+		if (l <= s && e <= r)
+		{
+			tree[x] += (e - s + 1) * diff;
+			if (s != e)
+			{
+				lazy[x * 2] += diff;
+				lazy[x * 2 + 1] += diff;
+			}
+		}
+		else
+		{
+			update_range(x * 2, s, (s + e) / 2, l, r, diff);
+			update_range(x * 2 + 1, (s + e) / 2 + 1, e, l, r, diff);
+			tree[x] = tree[x * 2] + tree[x * 2 + 1];
+		}
+	}
+	ll query(ll x, ll s, ll e, ll l, ll r)
+	{
+		update_lazy(x, s, e);
+		if (l > e || r < s) return 0ll;
+		if (l <= s && e <= r) return tree[x];
+		ll L = query(x * 2, s, (s + e) / 2, l, r);
+		ll R = query(x * 2 + 1, (s + e) / 2 + 1, e, l, r);
+		return L + R;
+	}
+};
+
+/*
+Kosaraju (SCC)
+*/
+#define MAX_V 100005
+struct Kosaraju
+{
+	ll V, E, num = 0; // SCC number is 1-base
+	vector<ll> g[MAX_V], rg[MAX_V], order, SCC; // node number is 1-base
+	vector<bool> v;
+	Kosaraju(ll V, ll E) :V(V), E(E), SCC(V + 1, 0), v(V + 1, 0) {}
+	void dfs(ll x)
+	{
+		v[x] = 1;
+		for (auto y : g[x]) if (!v[y]) dfs(y);
+		order.push_back(x);
+	}
+	void rdfs(ll x, ll num)
+	{
+		v[x] = 1;
+		SCC[x] = num;
+		for (auto y : rg[x]) if (!v[y]) rdfs(y, num);
+	}
+	void go()
+	{
+		for (int i = 1; i <= V; i++) dfs(i);
+		fill(v.begin(), v.end(), 0);
+		reverse(order.begin(), order.end());
+		for (auto i : order) if (!SCC[i]) rdfs(i, ++num);
+	}
+};
+
+/*
+LCA
+*/
+#define log2MAX_V 22
+struct LCA
+{
+	ll V, E;
+	ll p[log2MAX_V][MAX_V];
+	vector<ll> d, g[MAX_V];
+	LCA(ll V, ll E) :V(V), E(E), d(V + 1) {}
+	void dfs(ll x, ll par)
+	{
+		for (auto y : g[x])
+			if (y != par)
+			{
+				p[0][y] = x;
+				d[y] = d[x] + 1;
+				dfs(y, x);
+			}
+	}
+	void make(ll root)
+	{
+		dfs(root, 0);
+		for (int i = 1; i < log2(V) + 1; i++)
+			for (int j = 1; j <= V; j++)
+				p[i][j] = p[i - 1][p[i - 1][j]];
+	}
+	ll lca(ll u, ll v)
+	{
+		if (d[u] < d[v]) swap(u, v);
+		ll diff = d[u] - d[v];
+		for (int i = 0; i < log2(V) + 1; i++)
+			if (diff & (1ll << i)) u = p[i][u];
+		if (u == v) return u;
+		for (int i = log2(V); i >= 0; i--)
+			if (p[i][u] != p[i][v]) u = p[i][u], v = p[i][v];
+		return p[0][u];
+	}
+};
+
+/*
+Merge Sort Tree
+*/
+#define MAX_N 100005
+struct MergeSortTree
+{
+	vector<ll> a;
+	vector<ll> tree[4 * MAX_N];
+	void init(ll x, ll s, ll e)
+	{
+		if (s == e) tree[x].push_back(a[s]);
+		else
+		{
+			init(x * 2, s, (s + e) / 2);
+			init(x * 2 + 1, (s + e) / 2 + 1, e);
+			auto& l = tree[x * 2], & r = tree[x * 2 + 1];
+			tree[x].resize(l.size() + r.size());
+			merge(l.begin(), l.end(), r.begin(), r.end(), tree[x].begin());
+		}
+	}
+	ll query(ll x, ll s, ll e, ll l, ll r, ll v)
+	{
+		if (r < s || e < l) return 0;
+		if (l <= s && e <= r)
+			return lower_bound(tree[x].begin(), tree[x].end(), v) - tree[x].begin();
+		ll L = query(x * 2, s, (s + e) / 2, l, r, v);
+		ll R = query(x * 2 + 1, (s + e) / 2 + 1, e, l, r, v);
+		return L + R; // index of v
+	}
+};
+
+/*
+CCW
+*/
+ll ccw(pair<ll, ll> A, pair<ll, ll> B, pair<ll, ll> C)
+{
+	return A.first * B.second + B.first * C.second + C.first * A.second - A.first * C.second - B.first * A.second - C.first * B.second;
+}
+
+/*
+360 degree sort
+*/
+bool cmp(pair<ll, ll> a, pair<ll, ll> b)
+{
+	if ((a.first < 0) != (b.first < 0)) return a.first > b.first;
+	if (a.first == 0 && b.first == 0) return a.second < b.second;
+	return a.second * b.first < b.second* a.first;
+}
+
+/*
+Convex Hull
+*/
+struct ConvexHull
+{
+	vector<pair<ll, ll>> v, L, R;
+	ConvexHull(ll N) :v(N) {}
+	void TwoHalf()
+	{
+		sort(v.begin(), v.end());
+		for (auto i : v)
+		{
+			while (L.size() >= 2 && ccw(L[L.size() - 2], L[L.size() - 1], i) <= 0) L.pop_back();
+			L.push_back(i);
+			while (R.size() >= 2 && ccw(R[R.size() - 2], R[R.size() - 1], i) >= 0) R.pop_back();
+			R.push_back(i);
+		}
+		v.clear();
+		for (ll i = 0; i < L.size() - 1; i++) v.push_back(L[i]);
+		for (ll i = R.size() - 1; i > 0; i--) v.push_back(R[i]);
+	}
+};
+
+/*
+Rotating Calipers
+*/
+#define pll pair<ll, ll>
+pll operator + (const pll a, const pll b) { return { a.first + b.first, a.second + b.second }; }
+pll operator - (const pll a, const pll b) { return { a.first - b.first, a.second - b.second }; }
+struct RC
+{
+	ll dist(const pll a, const pll b)
+	{
+		return (a.first - b.first) * (a.first - b.first) + (a.second - b.second) * (a.second - b.second);
+	}
+	ll ccw(const pll a, const pll b, const pll c)
+	{
+		return a.first * b.second + b.first * c.second + c.first * a.second - a.first * c.second - b.first * a.second - c.first * b.second;
+	}
+	ll N;
+	vector<pair<ll, ll>> v, L, R;
+	RC(ll N) :N(N), v(N) {}
+	void TwoHalf()
+	{
+		sort(v.begin(), v.end());
+		for (auto i : v)
+		{
+			while (L.size() >= 2 && ccw(L[L.size() - 2], L[L.size() - 1], i) <= 0) L.pop_back();
+			L.push_back(i);
+			while (R.size() >= 2 && ccw(R[R.size() - 2], R[R.size() - 1], i) >= 0) R.pop_back();
+			R.push_back(i);
+		}
+		v.clear();
+		for (ll i = 0; i < L.size() - 1; i++) v.push_back(L[i]);
+		for (ll i = R.size() - 1; i > 0; i--) v.push_back(R[i]);
+	}
+	ll go() // v should be convex hull
+	{
+		ll ret = 0;
+		for (int i = 0, r = 0; i < N; i++)
+		{
+			// A, B, D - C + B
+			while (r < N * 2 && ccw(v[i], v[(i + 1) % N], v[(i + 1) % N] + v[(r + 1) % N] - v[r % N]) >= 0)
+			{
+				ret = max(ret, dist(v[i], v[r % N])); // A, D
+				r++;
+			}
+			ret = max(ret, dist(v[i], v[r % N]));
+		}
+		return ret;
+	}
+};
+
+/*
+Point in Convex Polygon
+*/
+bool isInCP(vector<pair<int, int>>& v, pair<int, int> pt) // v which is convex hull is sorted based on counter clock wise 
+{
+	int vs = v.size();
+	if (vs == 0) return false;
+	if (vs == 1) return v[0] == pt;
+	if (vs == 2) return ccw(v[0], v[1], pt) == 0 && v[0] <= pt && pt <= v[1];
+	if (ccw(v[vs - 1], v[0], pt) < 0 || ccw(v[0], v[1], pt) < 0) return 0;
+	int lo = 1, hi = vs - 1, res = vs - 1;
+	while (lo <= hi)
+	{
+		int mid = (lo + hi) / 2;
+		if (ccw(v[0], v[mid], pt) >= 0) lo = mid + 1;
+		else
+		{
+			res = mid;
+			hi = mid - 1;
+		}
+	}
+	return ccw(v[res - 1], v[res], pt) >= 0;
+}
+
+/*
+Bellman-Ford
+*/
+#define MAX_V 100005
+#define INF 1e9
+struct BellmanFord
+{
+	ll V;
+	vector<pair<ll, ll>> g[MAX_V];
+	BellmanFord(ll V) : V(V) {}
+	vector<ll> bellmanFord(ll src) // if there is a negative cycle, returns empty vector.
+	{
+		vector<ll> upper(V, INF);
+		upper[src] = 0;
+		bool updated = 0;
+		for (int iter = 0; iter < V; iter++)
+		{
+			updated = 0;
+			for (int here = 0; here < V; here++)
+				for (auto i : g[here])
+				{
+					auto [there, cost] = i;
+					if (upper[there] > upper[here] + cost)
+					{
+						upper[there] = upper[here] + cost;
+						updated = 1;
+					}
+				}
+			if (!updated) break;
+		}
+		if (updated) upper.clear(); // there is negative cycle.
+		return upper;
+	}
+};
+
+/*
+Eulerian Circuit
+*/
+#define MAX_V 1005
+struct Eulerian
+{
+	ll V, start;
+	ll g[MAX_V][MAX_V]; // adjacancy matrix
+	vector<ll> res;
+	bool check()
+	{
+		for (int i = 1; i <= V; i++)
+		{
+			ll cnt = 0;
+			for (int j = 1; j <= V; j++) cnt += g[i][j];
+			if (cnt & 2) return 0;
+			if (!start && cnt) start = i;
+		}
+	}
+	void dfs(ll x)
+	{
+		for (int y = 1; y <= V; y++)
+		{
+			if (g[x][y])
+			{
+				g[x][y]--;
+				g[y][x]--;
+				dfs(y);
+			}
+		}
+		res.push_back(x);
+	}
+};
+
+/*
+Bipartitie Matching
+*/
+#define MAX_V 1005
+struct Bipartitie
+{
+	ll V, E, res = 0;
+	vector<ll> g[MAX_V], A, B;
+	vector<bool> v;
+	Bipartitie(ll V, ll E) : V(V), E(E), A(V + 1, -1), B(V + 1, -1), v(V + 1, 0) {};
+	bool dfs(ll a)
+	{
+		v[a] = 1;
+		for (auto b : g[a])
+			if (B[b] == -1 || (!v[B[b]] && dfs(B[b])))
+			{
+				A[a] = b;
+				B[b] = a;
+				return 1;
+			}
+		return 0;
+	}
+	void go()
+	{
+		for (int i = 1; i <= V; i++)
+			if (A[i] == -1)
+			{
+				fill(v.begin(), v.end(), 0);
+				if (dfs(i)) res++;
+			}
+	}
+};
+
+/*
+Edmonds-Karp
+*/
+struct EdmondsKarp
+{
+	struct edge_t { int v, c, r; }; // next destination, capacity, index of reverse node
+	vector<vector<edge_t>> gph;
+	vector<int> dst, prv, idx;
+	EdmondsKarp(int n) : gph(n + 1), dst(n + 1), prv(n + 1), idx(n + 1) {} // '+1' for 1-base nodes
+	void add_edge(int s, int e, int c1, int c2 = 0)
+	{
+		gph[s].push_back({ e, c1, (int)gph[e].size() });
+		gph[e].push_back({ s, c2, (int)gph[s].size() - 1 }); // reverse edge
+	}
+	int augment(int s, int t)
+	{
+		fill(dst.begin(), dst.end(), -1);
+		queue<int> que;
+		que.push(s); dst[s] = 0;
+		while (!que.empty())
+		{
+			int v = que.front(); que.pop();
+			for (int i = 0; i < gph[v].size(); i++)
+			{
+				const auto& e = gph[v][i];
+				if (e.c > 0 && dst[e.v] == -1)
+				{
+					que.push(e.v); dst[e.v] = dst[v] + 1;
+					prv[e.v] = v; idx[e.v] = i;
+				}
+			}
+		}
+		if (dst[t] == -1) return 0;
+		int flow = 1e9;
+		for (int i = t; i != s; i = prv[i])
+		{
+			const auto& e = gph[prv[i]][idx[i]];
+			flow = min(flow, e.c);
+		}
+		for (int i = t; i != s; i = prv[i])
+		{
+			auto& e = gph[prv[i]][idx[i]];
+			e.c -= flow;
+			gph[e.v][e.r].c += flow;
+		}
+		return flow;
+	}
+	int run(int s, int t)
+	{
+		int flow = 0, path = 0;
+		while (path = augment(s, t)) flow += path;
+		return flow;
+	}
+};
+
+/*
+Dinic
+*/
+struct Dinic
+{
+	struct edge_t { int v, c, r; };
+	int n;
+	vector<vector<edge_t>> g;
+	vector<int> lv, idx;
+	Dinic(int n) :n(n), g(n + 1), lv(n + 1), idx(n + 1) {}
+	void add_edge(int s, int e, int c1, int c2 = 0)
+	{
+		g[s].push_back({ e, c1, (int)g[e].size() });
+		g[e].push_back({ s, c2, (int)g[s].size() - 1 });
+	}
+	bool bfs(int s, int t)
+	{
+		fill(lv.begin(), lv.end(), 0);
+		queue<int> que;
+		que.push(s); lv[s] = 1;
+		while (!que.empty())
+		{
+			int v = que.front(); que.pop();
+			for (const auto& e : g[v])
+				if (!lv[e.v] && e.c != 0) que.push(e.v), lv[e.v] = lv[v] + 1;
+		}
+		return lv[t];
+	}
+	int dfs(int v, int t, int f = 1e9)
+	{
+		if (v == t || f == 0) return f;
+		for (int& i = idx[v]; i < g[v].size(); i++)
+		{
+			auto& e = g[v][i];
+			if (lv[e.v] != lv[v] + 1 || e.c == 0) continue;
+			int now = dfs(e.v, t, min(f, e.c));
+			if (now == 0) continue;
+			e.c -= now;
+			g[e.v][e.r].c += now;
+			return now;
+		}
+		return 0;
+	}
+	int run(int s, int t)
+	{
+		int flow = 0, path = 0;
+		while (bfs(s, t))
+		{
+			fill(idx.begin(), idx.end(), 0);
+			while (path = dfs(s, t)) flow += path;
+		}
+		return flow;
+	}
+};
+
+/*
+Seive of Eratosthenes
+*/
+struct Eratosthenes
+{
+	ll N;
+	vector<bool> notP;
+	Eratosthenes(ll N) : N(N), notP(N + 1, 0) {}
+	void go()
+	{
+		for (ll i = 2; i <= N; i++)
+			for (ll j = i * i; j <= N; j += i) // be careful about integer-overflow
+				notP[j] = 1;
+	}
+};
+
+/*
+Euler Phi
+*/
+
+/*
+Fermat's little Theorem
+*/
+
+/*
+Extended Euclid
+*/
+
+/*
+Chinese Remainder Theorm
+*/
+
+/*
+Catalan Number
+*/
+
+/*
+Binomial Coefficient (N^2)
+*/
+
+/*
+Lucas Theorm (Binomial Coefficient)
+*/
+
+/*
+Modular Inverse
+*/
+
+/*
+Rabin - Karp
+*/
+
+/*
+Trie
+*/
+
+/*
+KMP
+*/
+
+/*
+Manacher
+*/
+
+/*
+Suffix Array
+*/
+
+/*
+Union Find
+*/
+
+/*
+Ternary Search
+*/
+
+/*
+Power with Divide and Conquer
+*/
+
+/*
+Matrix Power with Divide and Conquer
+*/
+
+/*
+Fibonacci Matrix
+*/
+
+/*
+Convex Hull Trick
+*/
