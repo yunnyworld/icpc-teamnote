@@ -1,9 +1,7 @@
 # icpc-teamnote
 
-Contents
-
-1. Data Structure
-	1 - 1. Segment Tree
+* Data Structure
+** Segment Tree
 	1 - 2. Lazy Propagation
 	1 - 3. Kosaraju (SCC)
 	1 - 4. LCA
