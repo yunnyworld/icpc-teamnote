@@ -250,8 +250,11 @@ ll ccw(pair<ll, ll> A, pair<ll, ll> B, pair<ll, ll> C)
 /*
 360 degree sort
 */
+pll operator - (const pll a, const pll b) { return { a.first - b.first, a.second - b.second }; }
+pll F;
 bool cmp(pair<ll, ll> a, pair<ll, ll> b)
 {
+	a = a - F; b = b - F;
 	if ((a.first < 0) != (b.first < 0)) return a.first > b.first;
 	if (a.first == 0 && b.first == 0) return a.second < b.second;
 	return a.second * b.first < b.second* a.first;
