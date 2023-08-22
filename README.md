@@ -24,13 +24,12 @@
 * Math
   	* Seive of Eratosthenes
 	* Euler Phi
-	* Fermat's little Theorem
+	* Modular Inverse
 	* Extended Euclid
 	* Chinese Remainder Theorm 
 	* Catalan Number
 	* Binomial Coefficient (N^2)
 	* Lucas Theorm (Binomial Coefficient)
-	* Modular Inverse
 
 * String
 	* Rabin-Karp
@@ -43,6 +42,5 @@
  	* Union Find
 	* Ternary Search
 	* Power with Divide and Conquer
-	* Matrix Power with Divide and Conquer
 	* Fibonacci Matrix
 	* Convex Hull Trick
