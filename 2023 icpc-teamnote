@@ -28,6 +28,7 @@ Contents
 	3 - 3. Bipartitie Matching
 	3 - 4. Edmonds-Karp
 	3 - 5. Dinic
+	3 - 6. Minimum Cost Maximum Flow
 
 4. Math
 	4 - 1. Seive of Eratosthenes
@@ -564,6 +565,62 @@ struct Dinic
 			while (path = dfs(s, t)) flow += path;
 		}
 		return flow;
+	}
+};
+
+/*
+Minimum Cost Maximum Flow
+*/
+struct MCMF
+{
+	const int INF = 1e9;
+	struct edge_t { int v, r, c, d; }; // next destination, index of reverse node, capacity, cost
+	vector<vector<edge_t>> g;
+	vector<int> in, prv, idx;
+	vector<int> dst;
+	MCMF(int n) : g(n), in(n), prv(n), idx(n), dst(n) {}
+	void add_edge(int s, int e, int c, int d)
+	{
+		g[s].push_back({ e, (int)g[e].size(), c, d });
+		g[e].push_back({ s, (int)g[s].size() - 1, 0, -d });
+	}
+	bool augment(int s, int t)
+	{
+		fill(in.begin(), in.end(), 0);
+		fill(dst.begin(), dst.end(), INF);
+		queue<int> que; 
+		que.push(s); dst[s] = 0; in[s] = 1;
+		while (!que.empty())
+		{
+			int v = que.front(); que.pop(); in[v] = 0;
+			for (int i = 0; i < g[v].size(); i++)
+			{
+				const auto& e = g[v][i];
+				if (e.c != 0 && dst[e.v] > dst[v] + e.d)
+				{
+					dst[e.v] = dst[v] + e.d;
+					prv[e.v] = v; idx[e.v] = i;
+					if (!in[e.v]) in[e.v] = 1, que.push(e.v);
+				}
+			}
+		}
+		return dst[t] < INF;
+	}
+	pair<int, int> minimum_cost_flow(int s, int t)
+	{
+		int flow = 0, cost = 0;
+		while (augment(s, t))
+		{
+			int path = INF;
+			for (int i = t; i != s; i = prv[i]) path = min(path, g[prv[i]][idx[i]].c);
+			flow += path; cost += path * dst[t];
+			for (int i = t; i != s; i = prv[i])
+			{
+				auto& e = g[prv[i]][idx[i]];
+				e.c -= path; g[i][e.r].c += path;
+			}
+		}
+		return { flow, cost };
 	}
 };
 
