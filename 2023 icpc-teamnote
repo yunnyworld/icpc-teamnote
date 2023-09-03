@@ -431,10 +431,10 @@ Bipartitie Matching
 #define MAX_V 1005
 struct Bipartitie
 {
-	ll V, E, res = 0;
+	ll V, res = 0;
 	vector<ll> g[MAX_V], A, B;
 	vector<bool> v;
-	Bipartitie(ll V, ll E) : V(V), E(E), A(V + 1, -1), B(V + 1, -1), v(V + 1, 0) {};
+	Bipartitie(ll V) : V(V), A(V + 1, -1), B(V + 1, -1), v(V + 1, 0) {};
 	bool dfs(ll a)
 	{
 		v[a] = 1;
