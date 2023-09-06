@@ -964,6 +964,19 @@ double TernarySearch(double l, double r)
 	}
 	return l;
 }
+ll TernarySearch(ll l, ll r)
+{
+	while (l + 3 <= r)
+	{
+		ll m1 = (2 * l + r) / 3;
+		ll m2 = (l + 2 * r) / 3;
+		if (f(m1) > f(m2)) l = m1; // find min
+		else r = m2;
+	}
+	ll ret = INF;
+	for (int i = l; i <= r; i++) ret = min(ret, f(i));
+	return ret;
+}
 
 /*
 Power with Divide and Conquer
