@@ -20,6 +20,7 @@
 	* Bipartitie Matching
 	* Edmonds-Karp
 	* Dinic
+ 	* Minimum Cost Maximum Flow 
  	* Centroid Decomposition	 
 
 * Math
