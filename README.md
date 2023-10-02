@@ -20,6 +20,7 @@
 	* Bipartitie Matching
 	* Edmonds-Karp
 	* Dinic
+ 	* Centroid Decomposition	 
 
 * Math
   	* Seive of Eratosthenes
