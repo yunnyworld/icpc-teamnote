@@ -167,6 +167,7 @@ struct Kosaraju
 		for (auto i : order) if (!SCC[i]) rdfs(i, ++num);
 	}
 };
+// Don't forget to build g[MAX_V] and rg[MAX_V]
 
 /*
 LCA
