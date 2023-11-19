@@ -161,7 +161,7 @@ struct Kosaraju
 	}
 	void go()
 	{
-		for (int i = 1; i <= V; i++) dfs(i);
+		for (int i = 1; i <= V; i++) if(!v[i]) dfs(i);
 		fill(v.begin(), v.end(), 0);
 		reverse(order.begin(), order.end());
 		for (auto i : order) if (!SCC[i]) rdfs(i, ++num);
